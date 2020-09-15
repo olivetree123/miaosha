@@ -12,7 +12,8 @@ db = MySQLDatabase(MYSQL_DB,
                    host=MYSQL_HOST,
                    port=MYSQL_PORT,
                    user=MYSQL_USER,
-                   password=MYSQL_PASSWORD)
+                   password=MYSQL_PASSWORD,
+                   autoconnect=True)
 
 
 class UUIDField(Field):

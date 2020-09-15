@@ -1,12 +1,14 @@
 from models import db
 from .goods import Goods
 from .order import Order, OrderItem
+from cache import cache
 from utils.errors import NotEnough, ParamError
 
 
 def buy(user, goods_list):
     """
     goods_list = [{"id": 111, "amount": 1}]
+    还应该判断货币是否足够，并扣除货币
     """
     if not isinstance(goods_list, (list, tuple)):
         raise ParamError(
@@ -35,3 +37,11 @@ def buy(user, goods_list):
             transaction.rollback()
             order = None
     return order
+
+
+def buy_from_cache(user_id, goods_list):
+    """不使用mysql，完全使用缓存"""
+    if not isinstance(goods_list, (list, tuple)):
+        raise ParamError(
+            "goods_list should be type of list, but {} found".format(
+                type(goods_list)))

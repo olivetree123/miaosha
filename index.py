@@ -18,18 +18,15 @@ manager.add_command("apidoc", GenerateApiDoc())
 create_tables()
 init_goods()
 
+# @app.before_request
+# def _db_connect():
+#     if db.is_closed():
+#         db.connect()
 
-@app.before_request
-def _db_connect():
-    if db.is_closed():
-        db.connect()
-
-
-@app.teardown_request
-def _db_close(exc):
-    if not db.is_closed():
-        db.close()
-
+# @app.teardown_request
+# def _db_close(exc):
+#     if not db.is_closed():
+#         db.close()
 
 # @app.after_request
 # def after_request(response):

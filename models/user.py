@@ -1,5 +1,5 @@
 import hashlib
-from peewee import CharField
+from peewee import CharField, DecimalField
 
 from models import BaseModel, db
 
@@ -7,6 +7,7 @@ from models import BaseModel, db
 class User(BaseModel):
     account = CharField(unique=True, verbose_name="账号")
     cipher = CharField(verbose_name="密码")
+    money = DecimalField(default=0, verbose_name="货币数量")
 
     @classmethod
     def is_exists(cls, account):

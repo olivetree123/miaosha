@@ -20,4 +20,4 @@ class Cache(object):
         return self.red.get(key)
 
 
-cache = Cache(host="gaojian.im", port=6379)
+cache = Cache(host="localhost", port=6379)

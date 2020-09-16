@@ -9,6 +9,7 @@ from utils.errors import GoodsNotEnough, MoneyNotEnough, ParamError, DataNotFoun
 1. 使用 MySQL 的事务
 2. 使用 Redis 缓存，可以提高性能
 3. 使用 MongoDB，既可以提高性能，又能保证数据不丢失
+4. 使用 Redis 缓存，并保证宕机时尽量多的恢复数据
 
 已知的问题：
 问题1：user.uid 是不是每次使用都会去查询数据库？
@@ -63,8 +64,16 @@ def buy(user_uid, goods_list):
 
 
 def buy_from_cache(user_id, goods_list):
-    """不使用mysql，完全使用缓存"""
+    """
+    库存放在缓存中，但是要怎么生成订单并扣除货币呢？
+    用户信息不可以在缓存中操作，因为用户可以买其他商品，而其他商品的购买是常规的 mysql 操作。
+    """
     if not isinstance(goods_list, (list, tuple)):
         raise ParamError(
             "goods_list should be type of list, but {} found".format(
                 type(goods_list)))
+
+
+def buy_from_mongo(user_id, goods_list):
+    """使用 MongoDB"""
+    pass

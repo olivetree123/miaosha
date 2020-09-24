@@ -1,4 +1,5 @@
 import redis
+from config import REDIS_HOST, REDIS_PORT
 
 
 class Cache(object):
@@ -17,7 +18,10 @@ class Cache(object):
 
     def get_token(self, token):
         key = "MIAOSHA:TOKEN:{TOKEN}".format(TOKEN=token)
-        return self.red.get(key)
+        return str(self.red.get(key), encoding="utf8")
+
+    def run_script(self, script):
+        return self.red.register_script(script)
 
 
-cache = Cache(host="localhost", port=6379)
+cache = Cache(host=REDIS_HOST, port=REDIS_PORT)

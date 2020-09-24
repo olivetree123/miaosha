@@ -1,6 +1,7 @@
 from models import db
 from .user import User
 from .goods import Goods
+from .mongo import Goods2, Order2, OrderItem2
 from .order import Order, OrderItem
 from cache import cache
 from utils.errors import GoodsNotEnough, MoneyNotEnough, ParamError, DataNotFound
@@ -63,17 +64,87 @@ def buy(user_uid, goods_list):
     return order
 
 
-def buy_from_cache(user_id, goods_list):
+def buy_from_redis(user_uid, goods_list):
     """
-    库存放在缓存中，但是要怎么生成订单并扣除货币呢？
-    用户信息不可以在缓存中操作，因为用户可以买其他商品，而其他商品的购买是常规的 mysql 操作。
+    使用Redis，使用lua脚本保证操作的原子性
+    goods_list = [{"id": "111", "amount": 2}]
+    goods_list_str = "111:2;222:3"
     """
-    if not isinstance(goods_list, (list, tuple)):
-        raise ParamError(
-            "goods_list should be type of list, but {} found".format(
-                type(goods_list)))
+    lua_script = """
+        local function split(inputstr, sep)
+            if sep == nil then
+                sep = "%s"
+            end
+            local t = {{}}
+            for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+                table.insert(t, str)
+            end
+            return t
+        end
+
+        local function get_goods_list(goods_list_str)
+            local result = {{}}
+            local data = split(goods_list_str, ";")
+            for i, goods in ipairs(data) do
+                local d = split(goods, ":")
+                result[d[1]] = d[2]
+            end
+            return result
+        end
+
+        local function log(message)
+            redis.log(redis.LOG_NOTICE, message)
+        end
+
+        local user_id = "{USER_ID}"
+        local goods_list_str = "{GOODS_LIST_STR}"
+        local goods_list = get_goods_list(goods_list_str)
+        local order_key = "MIAOSHA:ORDER:"..user_id
+        for goods_id, amount in pairs(goods_list) do
+            local goods_key = "MIAOSHA:GOODS:"..goods_id
+            local amt = redis.call("get", goods_key)
+            if amt < amount then
+                return 0
+            end
+        end
+        local items = ""
+        for goods_id, amount in pairs(goods_list) do
+            local item = goods_id..":"..amount..";"
+            local goods_key = "MIAOSHA:GOODS:"..goods_id
+            redis.call("decrby", goods_key, amount)
+            items = items..item
+        end
+        redis.call("lpush", order_key, items)
+        log("success to crete order, order_key = "..order_key)
+        return 1
+    """
+    goods_list_str = []
+    for goods in goods_list:
+        goods_list_str.append(goods["id"] + ":" + str(goods["amount"]))
+    goods_list_str = ";".join(goods_list_str)
+    script = lua_script.format(USER_ID=user_uid, GOODS_LIST_STR=goods_list_str)
+    cmd = cache.run_script(script)
+    res = cmd()
+    print(res)
+    return None
 
 
-def buy_from_mongo(user_id, goods_list):
-    """使用 MongoDB"""
-    pass
+def buy_from_mongo(user_uid, goods_list):
+    """
+    使用 MongoDB
+    好像不支持事务 ？
+    """
+    print("user_uid = ", user_uid)
+    items = []
+    for goods in goods_list:
+        goods_id, amount = goods["id"], goods["amount"]
+        goods = Goods2.check_amount(goods_id, amount)
+        if not goods:
+            raise GoodsNotEnough()
+        goods.amount -= amount
+        goods.save()
+        item = OrderItem2(goods=goods, price=goods.price, amount=amount)
+        items.append(item)
+    order = Order2(user=user_uid, items=items)
+    order.save()
+    return order

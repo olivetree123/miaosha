@@ -5,3 +5,6 @@ MYSQL_USER = "root"
 MYSQL_PASSWORD = "1q2w3e"
 MYSQL_PORT = 3306
 MYSQL_DB = "miaosha"
+
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379

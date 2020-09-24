@@ -1,4 +1,5 @@
 #coding:utf-8
+import uuid
 from flask import request
 from flask_httpauth import HTTPTokenAuth
 
@@ -15,5 +16,5 @@ def verify_token(token):
     user_id = cache.get_token(token)
     if not user_id:
         return False
-    setattr(request, "user", user_id)
+    setattr(request, "user", uuid.UUID(user_id).hex)
     return True

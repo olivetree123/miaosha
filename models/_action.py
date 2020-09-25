@@ -125,7 +125,7 @@ def buy_from_redis(user_uid, goods_list):
     script = lua_script.format(USER_ID=user_uid, GOODS_LIST_STR=goods_list_str)
     cmd = cache.run_script(script)
     res = cmd()
-    return None
+    return res
 
 
 def buy_from_mongo(user_uid, goods_list):
